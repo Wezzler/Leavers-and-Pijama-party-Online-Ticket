@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>BNB Party Ticket</title>
+
+  <!-- QR CODE -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- DOWNLOAD TICKET -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #080808;
+      color: white;
+      min-height: 100vh;
+      padding: 25px 15px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffd000;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .lookup {
+      background: #151515;
+      padding: 22px;
+      border-radius: 18px;
+      border: 1px solid #333;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 7px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #222;
+      color: white;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 10px;
+      background: #ffd000;
+      color: #000;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 13px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+    }
+
+    .error {
+      display: block;
+      background: #481c1c;
+      color: #ff8585;
+    }
+
+    .success {
+      display: block;
+      background: #173b20;
+      color: #7cff91;
+    }
+
+    #ticketArea {
+      display: none;
+      margin-top: 25px;
+    }
+
+    #ticket {
+      background: white;
+      color: #111;
+      padding: 25px;
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .ticket-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #111;
+    }
+
+    .ticket-subtitle {
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .ticket-line {
+      border-top: 2px dashed #aaa;
+      margin: 20px 0;
+    }
+
+    .details {
+      text-align: left;
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .details strong {
+      color: #000;
+    }
+
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .warning {
+      font-size: 12px;
+      color: #777;
+      margin-top: 12px;
+    }
+
+    .download {
+      background: #00d084;
+      color: white;
+    }
+
+    .footer {
+      text-align: center;
+      color: #777;
+      margin-top: 25px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🎟️ BNB PARTY</h1>
+
+  <div class="subtitle">
+    A BNB Leavers & Pyjama Party
+  </div>
+
+  <div class="lookup">
+
+    <h2>Find Your Ticket</h2>
+
+    <p>
+      Your ticket will only appear after your payment has been approved.
+    </p>
+
+    <label>Ticket ID</label>
+
+    <input
+      id="ticketId"
+      type="text"
+      placeholder="Example: BNB-XXXXXXXXXX"
+    >
+
+    <label>Phone Number</label>
+
+    <input
+      id="phone"
+      type="tel"
+      placeholder="Enter the number used when ordering"
+    >
+
+    <button onclick="findTicket()">
+      FIND MY TICKET
+    </button>
+
+    <div id="message" class="message"></div>
+
+  </div>
+
+
+  <div id="ticketArea">
+
+    <div id="ticket">
+
+      <div class="ticket-title">
+        BNB LEAVERS PARTY
+      </div>
+
+      <div class="ticket-subtitle">
+        404 ERROR GANG PRESENTS
+      </div>
+
+      <div class="ticket-line"></div>
+
+      <div class="details">
+
+        <div>
+          <strong>Name:</strong>
+          <span id="customerName"></span>
+        </div>
+
+        <div>
+          <strong>Phone:</strong>
+          <span id="customerPhone"></span>
+        </div>
+
+        <div>
+          <strong>Ticket:</strong>
+          <span id="ticketType"></span>
+        </div>
+
+        <div>
+          <strong>Price:</strong>
+          $<span id="ticketAmount"></span>
+        </div>
+
+        <div>
+          <strong>Ticket ID:</strong>
+          <span id="ticketNumber"></span>
+        </div>
+
+      </div>
+
+      <div class="ticket-line"></div>
+
+      <div>
+        <strong>21 NOVEMBER 2026</strong><br>
+        12:00 PM — UNTIL MAMA CALLS
+      </div>
+
+      <div id="qrcode"></div>
+
+      <div class="warning">
+        This QR code is checked at the gate.
+        Do not share your ticket.
+      </div>
+
+      <div class="ticket-line"></div>
+
+      <div>
+        🏊 Pool Activities<br>
+        🚐 Transport Available<br>
+        🎵 Music & Entertainment
+      </div>
+
+      <div class="ticket-line"></div>
+
+      <strong>💍 powered by Cyberdogg Tech</strong>
+
+    </div>
+
+    <button class="download" onclick="downloadTicket()">
+      ⬇️ DOWNLOAD TICKET
+    </button>
+
+  </div>
+
+  <div class="footer">
+    MTF GANG × 404 ERROR GANG
+  </div>
+
+</div>
+
+
+<script>
+
+  // YOUR SUPABASE DETAILS
+  const SUPABASE_URL = "https://ejwsispalkidteegolea.supabase.co";
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_1f0YOLnORGwYC_BsjN_-8g_gZot8_6t";
+
+
+  async function findTicket() {
+
+    const ticketId =
+      document.getElementById("ticketId").value.trim();
+
+    const phone =
+      document.getElementById("phone").value.trim();
+
+    const message =
+      document.getElementById("message");
+
+    const ticketArea =
+      document.getElementById("ticketArea");
+
+
+    ticketArea.style.display = "none";
+
+    message.className = "message";
+    message.style.display = "none";
+
+
+    if (!ticketId || !phone) {
+
+      message.textContent =
+        "Please enter your Ticket ID and phone number.";
+
+      message.className = "message error";
+
+      return;
+    }
+
+
+    try {
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/rpc/get_my_ticket`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_PUBLISHABLE_KEY,
+            "Authorization":
+              `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+          },
+
+          body: JSON.stringify({
+            p_ticket_id: ticketId,
+            p_phone: phone
+          })
+        }
+      );
+
+
+      const data = await response.json();
+
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          data.error_description ||
+          "Unable to find ticket."
+        );
+      }
+
+
+      if (!data || data.length === 0) {
+
+        message.textContent =
+          "Ticket not found, or payment has not been approved yet.";
+
+        message.className = "message error";
+
+        return;
+      }
+
+
+      const ticket = data[0];
+
+
+      document.getElementById("customerName").textContent =
+        ticket.customer_name;
+
+      document.getElementById("customerPhone").textContent =
+        ticket.phone;
+
+      document.getElementById("ticketType").textContent =
+        ticket.ticket_type.toUpperCase();
+
+      document.getElementById("ticketAmount").textContent =
+        ticket.amount;
+
+      document.getElementById("ticketNumber").textContent =
+        ticket.ticket_id;
+
+
+      /*
+        The QR contains the secret qr_token.
+        The gate scanner will send this token
+        to Supabase for verification.
+      */
+
+      document.getElementById("qrcode").innerHTML = "";
+
+
+      new QRCode(
+        document.getElementById("qrcode"),
+        {
+          text: ticket.qr_token,
+          width: 220,
+          height: 220,
+          correctLevel: QRCode.CorrectLevel.H
+        }
+      );
+
+
+      message.textContent =
+        "✓ Payment approved — your ticket is ready!";
+
+      message.className = "message success";
+
+
+      ticketArea.style.display = "block";
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      message.textContent =
+        "Unable to retrieve ticket. Please try again.";
+
+      message.className = "message error";
+    }
+  }
+
+
+  async function downloadTicket() {
+
+    const ticket =
+      document.getElementById("ticket");
+
+    const canvas =
+      await html2canvas(ticket, {
+        scale: 2,
+        backgroundColor: "#ffffff"
+      });
+
+
+    const link =
+      document.createElement("a");
+
+    link.download =
+      "BNB-Party-Ticket.png";
+
+    link.href =
+      canvas.toDataURL("image/png");
+
+    link.click();
+  }
+
+</script>
+
+</body>
+  </html>
