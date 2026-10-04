@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BNB Gate Scanner</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:20px;
+  background:#080808;
+  color:white;
+  font-family:Arial,sans-serif;
+}
+.container{max-width:520px;margin:auto}
+h1{text-align:center;color:#ffd000}
+.subtitle{text-align:center;color:#aaa;margin-bottom:25px}
+.panel{
+  background:#151515;
+  border:1px solid #333;
+  border-radius:18px;
+  padding:20px;
+}
+input{
+  width:100%;
+  padding:14px;
+  margin:8px 0 12px;
+  border-radius:10px;
+  border:1px solid #444;
+  background:#222;
+  color:white;
+  font-size:16px;
+}
+button{
+  width:100%;
+  padding:15px;
+  border:0;
+  border-radius:10px;
+  background:#ffd000;
+  color:#000;
+  font-size:16px;
+  font-weight:bold;
+  margin-top:10px;
+}
+.logout{background:#333;color:white}
+#scannerPanel{display:none}
+#scanner{width:100%;margin-top:15px}
+#result{
+  display:none;
+  margin-top:20px;
+  padding:22px;
+  border-radius:15px;
+  text-align:center;
+}
+.valid{
+  display:block!important;
+  background:#123d20;
+  border:2px solid #00e676;
+}
+.used{
+  display:block!important;
+  background:#4a3510;
+  border:2px solid #ffc107;
+}
+.invalid{
+  display:block!important;
+  background:#481c1c;
+  border:2px solid #ff4545;
+}
+.title{font-size:27px;font-weight:900;margin-bottom:10px}
+.details{line-height:1.8;font-size:17px}
+#loginMessage{color:#ff8585;text-align:center;margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚪 BNB GATE</h1>
+
+<div class="subtitle">
+Official Ticket Scanner
+</div>
+
+<div class="panel" id="loginPanel">
+
+<h2>🔐 Admin Login</h2>
+
+<input id="email" type="email" placeholder="Admin email">
+
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">LOGIN</button>
+
+<div id="loginMessage"></div>
+
+</div>
+
+
+<div class="panel" id="scannerPanel">
+
+<h2>📱 Scan Ticket</h2>
+
+<p>Point the camera at the customer's QR code.</p>
+
+<div id="scanner"></div>
+
+<div id="result"></div>
+
+<button onclick="startScanner()">
+🔄 SCAN ANOTHER TICKET
+</button>
+
+<button class="logout" onclick="logout()">
+LOG OUT
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+const SUPABASE_URL =
+"https://ejwsispalkidteegolea.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+"sb_publishable_1f0YOLnORGwYC_BsjN_-8g_gZot8_6t";
+
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+let scanner = null;
+let processing = false;
+
+
+/* LOGIN CHECK */
+
+async function checkLogin(){
+
+  const {data:{session}} =
+    await supabaseClient.auth.getSession();
+
+  if(session){
+
+    document.getElementById("loginPanel").style.display="none";
+    document.getElementById("scannerPanel").style.display="block";
+
+    startScanner();
+  }
+}
+
+
+/* LOGIN */
+
+async function login(){
+
+  const email =
+    document.getElementById("email").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  const message =
+    document.getElementById("loginMessage");
+
+  message.textContent="";
+
+  const {error} =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  if(error){
+    message.textContent=error.message;
+    return;
+  }
+
+  document.getElementById("loginPanel").style.display="none";
+  document.getElementById("scannerPanel").style.display="block";
+
+  startScanner();
+}
+
+
+/* CAMERA */
+
+async function startScanner(){
+
+  processing=false;
+
+  const result =
+    document.getElementById("result");
+
+  result.style.display="none";
+
+  if(scanner){
+
+    try{
+      await scanner.clear();
+    }catch(e){}
+
+    scanner=null;
+  }
+
+  scanner =
+    new Html5Qrcode("scanner");
+
+  try{
+
+    await scanner.start(
+      {facingMode:"environment"},
+      {
+        fps:10,
+        qrbox:{
+          width:250,
+          height:250
+        }
+      },
+
+      async(decodedText)=>{
+
+        if(processing)return;
+
+        processing=true;
+
+        try{
+          await scanner.clear();
+        }catch(e){}
+
+        await verifyTicket(decodedText);
+
+      },
+
+      ()=>{}
+    );
+
+  }catch(error){
+
+    showResult(
+      "invalid",
+      "📷 CAMERA ERROR",
+      error.message || "Unable to access camera."
+    );
+  }
+}
+
+
+/* VERIFY */
+
+async function verifyTicket(qrToken){
+
+  try{
+
+    const {data,error} =
+      await supabaseClient.rpc(
+        "scan_ticket",
+        {
+          p_qr_token:qrToken
+        }
+      );
+
+    if(error)throw error;
+
+    /*
+      New Supabase function returns
+      ONE JSON object, not an array.
+    */
+
+    if(!data){
+
+      showResult(
+        "invalid",
+        "🔴 INVALID TICKET",
+        "No ticket information returned."
+      );
+
+      return;
+    }
+
+
+    if(data.result==="VALID"){
+
+      showResult(
+        "valid",
+        "🟢 ENTRY APPROVED",
+        `
+        <strong>${escapeHtml(data.customer_name)}</strong><br>
+        ${escapeHtml(data.ticket_type.toUpperCase())}<br>
+        Ticket: ${escapeHtml(data.ticket_id)}
+        `
+      );
+
+      return;
+    }
+
+
+    if(data.result==="USED"){
+
+      showResult(
+        "used",
+        "🟠 ALREADY USED",
+        `
+        This ticket has already been scanned.<br><br>
+        Ticket: ${escapeHtml(data.ticket_id)}
+        `
+      );
+
+      return;
+    }
+
+
+    showResult(
+      "invalid",
+      "🔴 INVALID TICKET",
+      escapeHtml(data.message || "Invalid ticket.")
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    showResult(
+      "invalid",
+      "⚠️ SCAN ERROR",
+      escapeHtml(error.message || "Unable to verify ticket.")
+    );
+  }
+}
+
+
+/* RESULT */
+
+function showResult(type,title,details){
+
+  const result =
+    document.getElementById("result");
+
+  result.className=type;
+
+  result.innerHTML=`
+    <div class="title">${title}</div>
+    <div class="details">${details}</div>
+  `;
+
+  result.style.display="block";
+}
+
+
+/* LOGOUT */
+
+async function logout(){
+
+  if(scanner){
+
+    try{
+      await scanner.clear();
+    }catch(e){}
+
+    scanner=null;
+  }
+
+  await supabaseClient.auth.signOut();
+
+  location.reload();
+}
+
+
+/* HTML SAFETY */
+
+function escapeHtml(text){
+
+  return String(text)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+
+checkLogin();
+
+</script>
+
+</body>
+</html>
