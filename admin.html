@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>BNB Admin Dashboard</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0a0a0a;
+      color: white;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 92%;
+      max-width: 1100px;
+      margin: auto;
+      padding: 30px 0;
+    }
+
+    header {
+      padding: 25px 0;
+      border-bottom: 1px solid #292929;
+      margin-bottom: 25px;
+    }
+
+    header h1 {
+      color: #ffcc00;
+    }
+
+    header p {
+      color: #999;
+      margin-top: 8px;
+    }
+
+    .box {
+      background: #111;
+      border: 1px solid #292929;
+      border-radius: 16px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0 15px;
+      background: #181818;
+      color: white;
+      border: 1px solid #333;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 9px;
+      padding: 13px 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .login-btn,
+    .approve {
+      background: #ffcc00;
+      color: black;
+    }
+
+    .reject {
+      background: #dc3545;
+      color: white;
+    }
+
+    .logout {
+      background: #333;
+      color: white;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .order {
+      background: #181818;
+      border: 1px solid #303030;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 15px;
+    }
+
+    .order h3 {
+      color: #ffcc00;
+      margin-bottom: 12px;
+    }
+
+    .order p {
+      margin: 7px 0;
+      color: #ddd;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #493d00;
+      color: #ffcc00;
+      font-size: 13px;
+      font-weight: bold;
+      margin: 8px 0 15px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    #message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .success {
+      background: #123c25;
+      color: #8ff0b0;
+    }
+
+    .error {
+      background: #421b1b;
+      color: #ff9999;
+    }
+
+    .empty {
+      color: #888;
+      padding: 20px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>🎟️ BNB ADMIN</h1>
+    <p>A BNB Leavers & Pyjama Party</p>
+  </header>
+
+
+  <!-- LOGIN -->
+
+  <div id="loginBox" class="box">
+
+    <h2>Admin Login</h2>
+
+    <br>
+
+    <label>Email</label>
+
+    <input
+      type="email"
+      id="email"
+      placeholder="Admin email"
+    >
+
+    <label>Password</label>
+
+    <input
+      type="password"
+      id="password"
+      placeholder="Admin password"
+    >
+
+    <button
+      class="login-btn"
+      onclick="login()"
+    >
+      LOGIN
+    </button>
+
+    <div id="loginMessage"></div>
+
+  </div>
+
+
+  <!-- DASHBOARD -->
+
+  <div id="dashboard" class="hidden">
+
+    <div class="box">
+
+      <button
+        class="logout"
+        onclick="logout()"
+      >
+        LOG OUT
+      </button>
+
+      <button
+        class="login-btn"
+        onclick="loadOrders()"
+        style="margin-left:8px"
+      >
+        🔄 REFRESH
+      </button>
+
+    </div>
+
+
+    <div class="box">
+
+      <h2>Pending Payments</h2>
+
+      <br>
+
+      <div id="orders">
+        Loading...
+      </div>
+
+      <div id="message"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  /* ============================
+     SUPABASE
+  ============================ */
+
+  const SUPABASE_URL =
+    "https://ejwsispalkidteegolea.supabase.co/rest/v1/";
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_1f0YOLnORGwYC_BsjN_-8g_gZot8_6t";
+
+
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+  /* ============================
+     LOGIN
+  ============================ */
+
+  async function login() {
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
+
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+
+    if (error) {
+
+      showLoginMessage(
+        error.message,
+        "error"
+      );
+
+      return;
+    }
+
+
+    document
+      .getElementById("loginBox")
+      .classList.add("hidden");
+
+    document
+      .getElementById("dashboard")
+      .classList.remove("hidden");
+
+
+    loadOrders();
+  }
+
+
+  /* ============================
+     LOAD PENDING ORDERS
+  ============================ */
+
+  async function loadOrders() {
+
+    const orders =
+      document.getElementById("orders");
+
+    orders.innerHTML =
+      "Loading pending payments...";
+
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "admin_pending_tickets"
+      );
+
+
+    if (error) {
+
+      orders.innerHTML =
+        `<div class="empty">
+          ❌ ${escapeHtml(error.message)}
+        </div>`;
+
+      return;
+    }
+
+
+    if (!data || data.length === 0) {
+
+      orders.innerHTML =
+        `<div class="empty">
+          No pending payments 🎉
+        </div>`;
+
+      return;
+    }
+
+
+    orders.innerHTML =
+      data.map(order => `
+
+        <div class="order">
+
+          <h3>
+            ${escapeHtml(order.ticket_id)}
+          </h3>
+
+          <span class="status">
+            PENDING PAYMENT
+          </span>
+
+          <p>
+            <strong>Name:</strong>
+            ${escapeHtml(order.customer_name)}
+          </p>
+
+          <p>
+            <strong>Phone:</strong>
+            ${escapeHtml(order.phone)}
+          </p>
+
+          <p>
+            <strong>Ticket:</strong>
+            ${escapeHtml(order.ticket_type)}
+          </p>
+
+          <p>
+            <strong>Amount:</strong>
+            $${escapeHtml(String(order.amount))}
+          </p>
+
+          <p>
+            <strong>EcoCash Reference:</strong>
+            ${escapeHtml(order.ecocash_reference)}
+          </p>
+
+          <p>
+            <strong>Submitted:</strong>
+            ${new Date(order.created_at).toLocaleString()}
+          </p>
+
+          <div class="actions">
+
+            <button
+              class="approve"
+              onclick="setStatus(
+                '${escapeHtml(order.ticket_id)}',
+                'approved'
+              )"
+            >
+              ✅ APPROVE
+            </button>
+
+            <button
+              class="reject"
+              onclick="setStatus(
+                '${escapeHtml(order.ticket_id)}',
+                'rejected'
+              )"
+            >
+              ❌ REJECT
+            </button>
+
+          </div>
+
+        </div>
+
+      `).join("");
+  }
+
+
+  /* ============================
+     APPROVE / REJECT
+  ============================ */
+
+  async function setStatus(ticketId, status) {
+
+    const action =
+      status === "approved"
+        ? "approve"
+        : "reject";
+
+
+    const confirmed =
+      confirm(
+        `Are you sure you want to ${action} ticket ${ticketId}?`
+      );
+
+
+    if (!confirmed) return;
+
+
+    const { error } =
+      await supabaseClient.rpc(
+        "admin_set_payment_status",
+        {
+          p_ticket_id: ticketId,
+          p_status: status
+        }
+      );
+
+
+    if (error) {
+
+      showMessage(
+        error.message,
+        "error"
+      );
+
+      return;
+    }
+
+
+    showMessage(
+      `Ticket ${ticketId} has been ${status}.`,
+      "success"
+    );
+
+
+    loadOrders();
+  }
+
+
+  /* ============================
+     LOGOUT
+  ============================ */
+
+  async function logout() {
+
+    await supabaseClient.auth.signOut();
+
+    document
+      .getElementById("dashboard")
+      .classList.add("hidden");
+
+    document
+      .getElementById("loginBox")
+      .classList.remove("hidden");
+  }
+
+
+  /* ============================
+     MESSAGES
+  ============================ */
+
+  function showLoginMessage(text, type) {
+
+    const box =
+      document.getElementById("loginMessage");
+
+    box.innerHTML =
+      `<div class="${type}" style="display:block;padding:12px;margin-top:15px">
+        ${escapeHtml(text)}
+      </div>`;
+  }
+
+
+  function showMessage(text, type) {
+
+    const box =
+      document.getElementById("message");
+
+    box.className = type;
+
+    box.textContent = text;
+
+    box.style.display = "block";
+
+    setTimeout(() => {
+      box.style.display = "none";
+    }, 4000);
+  }
+
+
+  /* ============================
+     SECURITY
+  ============================ */
+
+  function escapeHtml(value) {
+
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+
+  /* ============================
+     CHECK EXISTING SESSION
+  ============================ */
+
+  supabaseClient.auth.getSession()
+    .then(({ data }) => {
+
+      if (data.session) {
+
+        document
+          .getElementById("loginBox")
+          .classList.add("hidden");
+
+        document
+          .getElementById("dashboard")
+          .classList.remove("hidden");
+
+        loadOrders();
+      }
+
+    });
+
+</script>
+
+</body>
+  </html>
